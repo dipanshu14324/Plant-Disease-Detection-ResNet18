@@ -1,0 +1,25 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+.env/
+.venv/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Dataset (large files)
+dataset/
+PlantVillage/
+
+# Model cache / logs
+*.log
+
+# Streamlit
+.streamlit/
+
+# OS files
+.DS_Store
+Thumbs.db

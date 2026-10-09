@@ -1,6 +1,5 @@
-Python 3.10+
-PyTorch
-Torchvision
-Streamlit
-Pillow
-NumPy
+streamlit
+torch
+torchvision
+pillow
+numpy

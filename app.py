@@ -1,9 +1,10 @@
-
 import streamlit as st
 import torch
 import torchvision.transforms as transforms
 from torchvision import models
 from PIL import Image
+import os
+
 
 # Page configuration
 st.set_page_config(
@@ -11,10 +12,12 @@ st.set_page_config(
     page_icon="🌱"
 )
 
+
 st.title("🌱 Plant Disease Detection using ResNet18")
 st.write("Upload a plant leaf image to predict disease.")
 
-# Classes (replace if your class order is different)
+
+# Classes
 class_names = [
     "Apple___Apple_scab",
     "Apple___Black_rot",
@@ -56,37 +59,73 @@ class_names = [
     "Tomato___healthy"
 ]
 
-# Load model
+
+device = "cpu"
+
+
+# Load Model
 @st.cache_resource
 def load_model():
 
-    model = models.resnet18(weights=None)
-    model.fc = torch.nn.Linear(
-        model.fc.in_features,
-        len(class_names)
-    )
+    try:
 
-    checkpoint = torch.load(
-        "models/best_plant_disease_model.pth",
-        map_location="cpu"
-    )
+        model = models.resnet18(weights=None)
 
-    model.load_state_dict(checkpoint)
-    model.eval()
+        model.fc = torch.nn.Linear(
+            model.fc.in_features,
+            len(class_names)
+        )
 
-    return model
+
+        model_path = os.path.join(
+            os.path.dirname(__file__),
+            "models",
+            "best_plant_disease_model.pth"
+        )
+
+
+        checkpoint = torch.load(
+            model_path,
+            map_location=device
+        )
+
+
+        model.load_state_dict(checkpoint)
+
+        model.eval()
+
+        return model
+
+
+    except Exception as e:
+
+        st.error(
+            f"Model loading failed: {e}"
+        )
+
+        return None
+
 
 
 model = load_model()
 
+
+
+# Image preprocessing
+
 transform = transforms.Compose([
+
     transforms.Resize((224,224)),
+
     transforms.ToTensor(),
+
     transforms.Normalize(
         mean=[0.485,0.456,0.406],
         std=[0.229,0.224,0.225]
     )
+
 ])
+
 
 
 uploaded_file = st.file_uploader(
@@ -95,39 +134,49 @@ uploaded_file = st.file_uploader(
 )
 
 
-if uploaded_file:
 
-    image = Image.open(uploaded_file)
+if uploaded_file and model:
+
+
+    image = Image.open(uploaded_file).convert("RGB")
+
 
     st.image(
         image,
-        caption="Uploaded Image",
+        caption="Uploaded Leaf Image",
         use_container_width=True
     )
 
 
-    img = transform(image).unsqueeze(0)
+    image_tensor = transform(image).unsqueeze(0)
+
+
 
     with torch.no_grad():
 
-        output = model(img)
+        output = model(image_tensor)
 
-        probability = torch.nn.functional.softmax(
+
+        probabilities = torch.nn.functional.softmax(
             output,
             dim=1
         )
 
+
         confidence, predicted = torch.max(
-            probability,
+            probabilities,
             1
         )
 
 
+
     disease = class_names[predicted.item()]
+
 
     st.success(
         f"Prediction: {disease}"
     )
+
 
     st.info(
         f"Confidence: {confidence.item()*100:.2f}%"
